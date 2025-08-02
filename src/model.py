@@ -11,7 +11,7 @@ def create_model(max_frames=5):
     base_model = MobileNetV2(weights='imagenet', include_top=False, input_shape=(224, 224, 3))
     base_model.trainable = True
    
-    for layer in base_model.layers[:30]:
+    for layer in base_model.layers[:20]:
         layer.trainable = False
     
     cnn = TimeDistributed(base_model)(input_layer)
@@ -23,20 +23,20 @@ def create_model(max_frames=5):
     # Dense layers with regularization
     x = Dense(256, activation='relu')(lstm)
     x = BatchNormalization()(x)
-    x = Dropout(0.7)(x) 
+    x = Dropout(0.3)(x) 
     
     x = Dense(128, activation='relu')(x)
     x = BatchNormalization()(x)
     x = Dropout(0.5)(x) 
     
-    x = Dense(64, activation='relu', kernel_regularizer=tf.keras.regularizers.l2(0.1))(x)
-    x = Dropout(0.5)(x)
+    x = Dense(64, activation='relu', kernel_regularizer=tf.keras.regularizers.l2(0.01))(x)
+    x = Dropout(0.2)(x)
 
     predictions = Dense(1, activation='sigmoid')(x)
     
     # Create model with proper input/output
     model = Model(inputs=input_layer, outputs=predictions)
-    optimizer = tf.keras.optimizers.Adam(learning_rate=0.001)
+    optimizer = tf.keras.optimizers.Adam(learning_rate=0.0001)
     model.compile(optimizer=optimizer, loss='binary_crossentropy', metrics=['accuracy'])
     
     return model
