@@ -1,0 +1,21 @@
+ACCIDENT DETECTION DATASET SUMMARY
+==================================================
+Generated: 2025-08-02 10:21:15.487239
+
+TRAIN SET:
+  Accident: 369 images
+  Non Accident: 421 images
+  Total train: 790 images
+
+TEST SET:
+  Accident: 47 images
+  Non Accident: 52 images
+  Total test: 99 images
+
+VAL SET:
+  Accident: 46 images
+  Non Accident: 52 images
+  Total val: 98 images
+
+GRAND TOTAL: 987 images
+==================================================

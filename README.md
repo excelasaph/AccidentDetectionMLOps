@@ -1,63 +1,86 @@
-# MLOps Image Classification Project
+# Accident Detection MLOps Project
 
 ## Project Description
-This project implements an end-to-end Machine Learning pipeline for classifying images (e.g., cats vs. dogs) using TensorFlow. It includes data preprocessing, model training, evaluation, API creation, a React-based UI, and cloud deployment on AWS. The system supports single image predictions, bulk data uploads for retraining, and visualizations of dataset features. Locust is used to simulate request floods and evaluate model performance.
+
+This project implements an **end-to-end Machine Learning pipeline** for detecting accidents from CCTV footage images using **TensorFlow**. It includes:
+
+- Data preprocessing
+- Model training and evaluation
+- FastAPI backend
+- HTML/CSS/JavaScript UI
+- Deployment on Render
+- Single-image predictions
+- Bulk data uploads for retraining
+- Visualizations of dataset features
+- Load testing with Locust
 
 ## Setup Instructions
 
-### Clone the Repository:
+### 1. Clone the Repository
+
 ```bash
 git clone <your-repo-url>
-cd Project_name
+cd AccidentDetectionMLOps
 ```
 
-### Install Dependencies:
+### 2. Install Dependencies
+
 ```bash
 pip install -r requirements.txt
 ```
 
-### Dataset:
+### 3. Dataset Setup
 
-Place training and test images in `data/train/` and `data/test/` respectively.
-Example dataset: Kaggle Cats vs Dogs.
+1. Download from **Kaggle**
+2. Place images in the following structure:
+   - `data/train/` with `Accident/` and `Non_Accident/` subfolders
+   - `data/test/` with `Accident/` and `Non_Accident/` subfolders
+   - `data/val/` with `Accident/` and `Non_Accident/` subfolders
 
-### Run Jupyter Notebook:
+### 4. Run Jupyter Notebook
+
 ```bash
-jupyter notebook notebook/project_name.ipynb
+jupyter notebook notebook/accident_detection.ipynb
 ```
 
-### Run the Flask API:
+### 5. Run FastAPI Server
+
 ```bash
-python src/app.py
+uvicorn src.main:app --reload
 ```
 
-### Run the React UI:
+### 6. Serve UI
+
+- **Option 1:** Open `static/index.html` in a browser
+- **Option 2:** Access via FastAPI at `http://localhost:8000`
+
+### 7. Deploy on Render
+
+Follow the deployment steps in the **Deploy on Render** section.
+
+### 8. Run Load Testing
+
 ```bash
-cd ui
-npm install
-npm start
+locust -f src/locustfile.py --host=https://<your-render-url>
 ```
 
-### Deploy on AWS:
 
-Use AWS EC2 or Elastic Beanstalk for deployment.
-Follow the deployment steps in the Deploy on AWS section below.
 
-### Run Locust for Load Testing:
-```bash
-locust -f src/locustfile.py --host=http://<your-api-url>
-```
+## Demo & Resources
 
-## Video Demo
-YouTube Link to Video Demo (Replace with your YouTube link)
+### 📺 Video Demo
+[YouTube Link to Video Demo](Replace with your YouTube link)
 
-## URL
+### 🔗 Live Application
+**API/UI:** [https://<your-render-url>](https://<your-render-url>)
 
-API: http://<your-api-url>
-UI: http://<your-ui-url>
+## 🚀 Performance Testing Results
 
-## Flood Request Simulation Results
+### Load Testing with Locust
 
-1 Docker Container: Latency ~200ms, Response Time ~250ms for 100 users.
-2 Docker Containers: Latency ~150ms, Response Time ~180ms for 100 users.
-(Update with actual results after running Locust)
+| Configuration | Latency | Response Time | Users |
+|---------------|---------|---------------|-------|
+| **1 Instance** | ~[TBD]ms | ~[TBD]ms | 100 users |
+| **2 Instances** | ~[TBD]ms | ~[TBD]ms | 100 users |
+
+> **Note:** Update these metrics after running Locust performance tests.
