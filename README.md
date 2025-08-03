@@ -93,6 +93,13 @@ This project implements an end-to-end MLOps pipeline for accident detection that
 
 **Source**: [Accident Detection From CCTV Footage](https://www.kaggle.com/datasets/ckay16/accident-detection-from-cctv-footage)
 
+**Description**:  
+This dataset consists of images extracted from YouTube videos showing both accident and non-accident scenes, intended for **real-time accident detection** from CCTV footage.
+
+The data is organized into three main folders — `train`, `test`, and `val` — each containing subfolders for `Accident` and `Non Accident` frames. Within each class, consecutive frames from the same event are included, allowing the model to learn temporal patterns and better distinguish between accident and non-accident scenarios. 
+
+This sequence-based structure helps the model capture the progression of events, improving its ability to detect accidents as they unfold in video streams.
+
 **Statistics**:
 - **Training Images**: 1,500+ images per class
 - **Test Images**: 300+ images per class  
