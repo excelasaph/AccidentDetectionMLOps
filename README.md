@@ -107,8 +107,7 @@ This project implements an end-to-end MLOps pipeline for accident detection that
 - Sequence generation for temporal analysis
 
 
-
-### 🛠️ Resources
+### Resources
 - **Jupyter Notebook**: `notebook/accident_detection.ipynb`
 - **Load Testing**: `src/locustfile.py`
 
@@ -229,15 +228,25 @@ locust -f src/locustfile.py --host=https://accidentdetectionmlops.onrender.com
 
 # Headless testing
 locust -f src/locustfile.py --host=https://accidentdetectionmlops.onrender.com \
-  --users 50 --spawn-rate 2 --run-time 5m --headless
+  --users 100 --spawn-rate 20 --run-time 5m --headless
 ```
 
 ### Performance Results
 | Configuration | Avg Response Time | 95th Percentile | Requests/sec | Users | Failures |
 |---------------|------------------|-----------------|--------------|-------|----------|
-| **Health Check** | ~150ms | ~200ms | 25 RPS | 50 users | <1% |
-| **Prediction** | ~2.5s | ~4s | 8 RPS | 20 users | <2% |
-| **Analytics** | ~300ms | ~500ms | 15 RPS | 30 users | <1% |
+| **Health Check** | ~21,000ms | ~31,000ms | 3.8 RPS | 100 users | 0% |
+| **Prediction** | ~18,000ms | ~34,000ms | 2.8 | 50 users | <1% |
+| **Analytics** | ~18,000ms | ~34,000ms | 0.4 RPS | 20 users | <1%  |
+
+### Load Test Visuals
+
+<div align="center">
+    <img src="locust_load_test/Locust File Load Test 1.png" width="400" />
+    <br>
+    <img src="locust_load_test/Locust File Load Test 2.png" width="400" />
+    <br>
+    <img src="locust_load_test/Locust File Load Test 3.png" width="400" />
+</div>
 
 ## Project Structure
 
@@ -265,6 +274,5 @@ AccidentDetectionMLOps/
 ├── runtime.txt                  
 └── README.md                    
 ```
-
 
 
