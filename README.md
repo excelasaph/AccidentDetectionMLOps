@@ -189,12 +189,11 @@ The project includes a comprehensive Jupyter notebook (`notebook/accident_detect
 - **Output**: Binary classification (Accident/No Accident)
 
 ### Model Performance
-- **Architecture**: MobileNetV2 + LSTM temporal model
-- **Accuracy**: 0.5333 (53.3%)
-- **Loss**: 0.8325
-- **F1 Score**: 0.6866 (68.7%)
-- **Precision**: 0.5227 (52.3%)
-- **Recall**: 1.0000 (100.0%)
+- `**Accuracy**`: 0.5333 (53.3%)
+- `**Loss**`: 0.8325
+- `**F1 Score**`: 0.6866 (68.7%)
+- `**Precision**`: 0.5227 (52.3%)
+- `**Recall**`: 1.0000 (100.0%)
 
 #### Training Pipeline
 - **Data Augmentation**: Rotation, brightness, zoom, horizontal flip
