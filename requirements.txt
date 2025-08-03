@@ -26,7 +26,6 @@ Pillow
 psutil
 
 # Existing project requirements
-tensorflow
 opencv-python
 pymongo
 gridfs
