@@ -225,10 +225,11 @@ def prediction_page(api_status, health_data):
     st.title("Accident Detection Prediction")
     
     if not api_status:
-        st.error("API is not available. Please start the FastAPI server first.")
-        st.code("python -m uvicorn src.main:app --reload")
+        st.error("❌ API is not available. Please start the FastAPI server first.")
+        st.code("python start_api.py")
         return
     
+    st.success("✅ API Server Connected")
     st.markdown("Upload a sequence of images to predict if an accident is occurring.")
     
     # File upload
@@ -242,6 +243,136 @@ def prediction_page(api_status, health_data):
     if uploaded_files:
         if len(uploaded_files) < 2:
             st.warning("⚠️ Please upload at least 2 images for sequence prediction.")
+        elif len(uploaded_files) > 5:
+            st.warning("⚠️ Too many images. Using first 5 images only.")
+            uploaded_files = uploaded_files[:5]
+        else:
+            st.success(f"✅ {len(uploaded_files)} images uploaded successfully!")
+        
+        # Display uploaded images
+        st.subheader("Uploaded Images")
+        cols = st.columns(min(len(uploaded_files), 5))
+        
+        for i, uploaded_file in enumerate(uploaded_files[:5]):
+            with cols[i]:
+                image = Image.open(uploaded_file)
+                st.image(image, caption=f"Image {i+1}", use_container_width=True)
+        
+        # Prediction button
+        st.markdown("---")
+        st.subheader("Make Prediction")
+        
+        # Center the button
+        col1, col2, col3 = st.columns([1, 2, 1])
+        with col2:
+            if st.button("PREDICT ACCIDENT", type="primary", use_container_width=True, key="predict_btn"):
+                if len(uploaded_files) >= 2:
+                    with st.spinner("Making prediction..."):
+                        try:
+                            # Prepare files for API
+                            files = []
+                            for uploaded_file in uploaded_files:
+                                files.append(('files', (uploaded_file.name, uploaded_file.getvalue(), 'image/jpeg')))
+                            
+                            # Make prediction request
+                            response = requests.post(f"{API_BASE_URL}/predict", files=files)
+                            
+                            if response.status_code == 200:
+                                result = response.json()
+                                prediction_raw = result.get('prediction', 0)
+                                stored_in_mongodb = result.get('stored_in_mongodb', False)
+                                images_stored = result.get('images_stored', 0)
+                                
+                                # Ensure prediction is a float
+                                try:
+                                    prediction = float(prediction_raw)
+                                except (ValueError, TypeError):
+                                    prediction = 0.0
+                                
+                                # Display result
+                                st.markdown("---")
+                                st.subheader("Prediction Results")
+                                
+                                col1, col2 = st.columns([1, 2])
+                                
+                                with col1:
+                                    if prediction >= 0.5:
+                                        st.error("ACCIDENT DETECTED")
+                                        st.metric("Confidence", f"{prediction:.2%}")
+                                    else:
+                                        st.success("NO ACCIDENT")
+                                        st.metric("Confidence", f"{(1-prediction):.2%}")
+                                
+                                with col2:
+                                    # Confidence visualization
+                                    fig = go.Figure(go.Indicator(
+                                        mode = "gauge+number+delta",
+                                        value = prediction,
+                                        domain = {'x': [0, 1], 'y': [0, 1]},
+                                        title = {'text': "Accident Probability"},
+                                        delta = {'reference': 0.5},
+                                        gauge = {
+                                            'axis': {'range': [None, 1]},
+                                            'bar': {'color': "darkred" if prediction >= 0.5 else "darkgreen"},
+                                            'steps': [
+                                                {'range': [0, 0.5], 'color': "lightgreen"},
+                                                {'range': [0.5, 1], 'color': "lightcoral"}
+                                            ],
+                                            'threshold': {
+                                                'line': {'color': "red", 'width': 4},
+                                                'thickness': 0.75,
+                                                'value': 0.5
+                                            }
+                                        }
+                                    ))
+                                    
+                                    fig.update_layout(height=300)
+                                    st.plotly_chart(fig, use_container_width=True)
+                                
+                                # Show MongoDB storage status
+                                st.markdown("---")
+                                st.subheader("Data Storage Status")
+                                
+                                col3, col4 = st.columns(2)
+                                with col3:
+                                    if stored_in_mongodb:
+                                        st.success(f"✅ Stored {images_stored} images in MongoDB")
+                                        st.info("Prediction data available in Analytics page")
+                                    else:
+                                        st.warning("⚠️ Images not stored in MongoDB")
+                                
+                                with col4:
+                                    if stored_in_mongodb:
+                                        if st.button("View Analytics", key="view_analytics", type="secondary"):
+                                            st.session_state.selected_page = "Prediction Analytics"
+                                            st.rerun()
+                            
+                            else:
+                                st.error(f"❌ Prediction failed: {response.text}")
+                        
+                        except Exception as e:
+                            st.error(f"❌ Error making prediction: {str(e)}")
+                else:
+                    st.warning("⚠️ Please upload at least 2 images for prediction.")
+    
+    else:
+        # Instructions when no files uploaded
+        st.info("👆 Please upload 2-5 images to begin accident detection")
+        
+        # Sample instructions
+        st.subheader("Instructions")
+        st.write("""
+        1. **Upload Images**: Select 2-5 images from a sequence
+        2. **Review Upload**: Check that images are displayed correctly  
+        3. **Click Predict**: Press the "PREDICT ACCIDENT" button
+        4. **View Results**: See prediction confidence and classification
+        """)
+        
+        # Example image types
+        st.subheader("Supported Formats")
+        st.write("• PNG, JPG, JPEG files")
+        st.write("• Recommended: 2-5 sequential images")
+        st.write("• Images will be resized automatically")
 
 def prediction_analytics_page(api_status, health_data):
     """Prediction analytics and history interface"""
@@ -287,11 +418,89 @@ def prediction_analytics_page(api_status, health_data):
                     st.metric("Avg Prediction Score", f"{avg_prediction:.3f}")
                 
             else:
-                st.info("ℹNo prediction data available yet. Make some predictions first!")
+                st.info("No prediction data available yet. Make some predictions first!")
         else:
             st.error("Failed to load prediction statistics")
     except Exception as e:
         st.error(f"Error loading statistics: {str(e)}")
+    
+    st.markdown("---")
+    
+    # Clear Data Section
+    st.subheader("🗑️ Clear Data")
+    
+    col1, col2 = st.columns(2)
+    
+    with col1:
+        st.markdown("**Clear Prediction Data**")
+        st.caption("Remove all prediction history and results from database")
+        
+        if st.button("🗑️ Clear All Predictions", type="secondary", use_container_width=True, key="clear_predictions"):
+            # Confirmation dialog
+            if 'confirm_clear_predictions' not in st.session_state:
+                st.session_state.confirm_clear_predictions = False
+            
+            if not st.session_state.confirm_clear_predictions:
+                st.session_state.confirm_clear_predictions = True
+                st.warning("⚠️ This will permanently delete all prediction data. Click again to confirm.")
+                st.rerun()
+            else:
+                # Actually clear the data
+                try:
+                    response = requests.delete(f"{API_BASE_URL}/clear-predictions")
+                    if response.status_code == 200:
+                        result = response.json()
+                        if result.get('success'):
+                            st.success(f"✅ {result.get('message')}")
+                            st.session_state.confirm_clear_predictions = False
+                            st.rerun()
+                        else:
+                            st.error(f"❌ {result.get('error')}")
+                    else:
+                        st.error("Failed to clear prediction data")
+                except Exception as e:
+                    st.error(f"Error: {str(e)}")
+                finally:
+                    st.session_state.confirm_clear_predictions = False
+    
+    with col2:
+        st.markdown("**Clear Training Data**")
+        st.caption("Remove all uploaded training data from MongoDB")
+        
+        if st.button("🗑️ Clear Training Data", type="secondary", use_container_width=True, key="clear_training"):
+            # Confirmation dialog
+            if 'confirm_clear_training' not in st.session_state:
+                st.session_state.confirm_clear_training = False
+            
+            if not st.session_state.confirm_clear_training:
+                st.session_state.confirm_clear_training = True
+                st.warning("⚠️ This will permanently delete all uploaded training data. Click again to confirm.")
+                st.rerun()
+            else:
+                # Actually clear the data
+                try:
+                    response = requests.delete(f"{API_BASE_URL}/clear-training-data")
+                    if response.status_code == 200:
+                        result = response.json()
+                        if result.get('success'):
+                            st.success(f"✅ {result.get('message')}")
+                            st.session_state.confirm_clear_training = False
+                            st.rerun()
+                        else:
+                            st.error(f"❌ {result.get('error')}")
+                    else:
+                        st.error("Failed to clear training data")
+                except Exception as e:
+                    st.error(f"Error: {str(e)}")
+                finally:
+                    st.session_state.confirm_clear_training = False
+    
+    # Reset confirmation states if user navigates away
+    if st.session_state.get('confirm_clear_predictions') or st.session_state.get('confirm_clear_training'):
+        if st.button("Cancel", key="cancel_clear"):
+            st.session_state.confirm_clear_predictions = False
+            st.session_state.confirm_clear_training = False
+            st.rerun()
     
     st.markdown("---")
     
@@ -380,111 +589,6 @@ def prediction_analytics_page(api_status, health_data):
         st.error(f"Error loading history: {str(e)}")
 
 def visualization_page(api_status, health_data):
-    """Data visualization and analytics interface"""
-    st.title("Data Visualizations")
-    
-    if not api_status:
-        st.error("API not available. Please start the FastAPI server first.")
-        return
-        
-        # Display uploaded images
-        st.subheader("📸 Uploaded Images")
-        cols = st.columns(min(len(uploaded_files), 5))
-        
-        for i, uploaded_file in enumerate(uploaded_files[:5]):
-            with cols[i]:
-                image = Image.open(uploaded_file)
-                st.image(image, caption=f"Image {i+1}", use_container_width=True)
-        
-        # Prediction button
-        if st.button("Predict Accident", type="primary", use_container_width=True):
-            if len(uploaded_files) >= 2:
-                with st.spinner("Making prediction..."):
-                    try:
-                        # Prepare files for API
-                        files = []
-                        for uploaded_file in uploaded_files:
-                            files.append(('files', (uploaded_file.name, uploaded_file.getvalue(), 'image/jpeg')))
-                        
-                        # Make prediction request
-                        response = requests.post(f"{API_BASE_URL}/predict", files=files)
-                        
-                        if response.status_code == 200:
-                            result = response.json()
-                            prediction_raw = result.get('prediction', 0)
-                            stored_in_mongodb = result.get('stored_in_mongodb', False)
-                            images_stored = result.get('images_stored', 0)
-                            
-                            # Ensure prediction is a float
-                            try:
-                                prediction = float(prediction_raw)
-                            except (ValueError, TypeError):
-                                prediction = 0.0
-                            
-                            # Display result
-                            col1, col2 = st.columns([1, 2])
-                            
-                            with col1:
-                                if prediction >= 0.5:
-                                    st.error("ACCIDENT DETECTED")
-                                    st.metric("Confidence", f"{prediction:.2%}")
-                                else:
-                                    st.success("NO ACCIDENT")
-                                    st.metric("Confidence", f"{(1-prediction):.2%}")
-                            
-                            with col2:
-                                # Confidence visualization
-                                fig = go.Figure(go.Indicator(
-                                    mode = "gauge+number+delta",
-                                    value = prediction,
-                                    domain = {'x': [0, 1], 'y': [0, 1]},
-                                    title = {'text': "Accident Probability"},
-                                    delta = {'reference': 0.5},
-                                    gauge = {
-                                        'axis': {'range': [None, 1]},
-                                        'bar': {'color': "darkred" if prediction >= 0.5 else "darkgreen"},
-                                        'steps': [
-                                            {'range': [0, 0.5], 'color': "lightgreen"},
-                                            {'range': [0.5, 1], 'color': "lightcoral"}
-                                        ],
-                                        'threshold': {
-                                            'line': {'color': "red", 'width': 4},
-                                            'thickness': 0.75,
-                                            'value': 0.5
-                                        }
-                                    }
-                                ))
-                                
-                                fig.update_layout(height=300)
-                                st.plotly_chart(fig, use_container_width=True)
-                            
-                            # Show MongoDB storage status
-                            st.markdown("---")
-                            st.subheader("💾 Data Storage Status")
-                            
-                            col3, col4 = st.columns(2)
-                            with col3:
-                                if stored_in_mongodb:
-                                    st.success(f"✅ Stored {images_stored} images in MongoDB")
-                                    st.info("📊 Prediction data available in Analytics page")
-                                else:
-                                    st.warning("⚠️ Images not stored in MongoDB")
-                            
-                            with col4:
-                                if stored_in_mongodb:
-                                    if st.button("📊 View Analytics", key="view_analytics"):
-                                        st.session_state.selected_page = "Prediction Analytics"
-                                        st.rerun()
-                        
-                        else:
-                            st.error(f"❌ Prediction failed: {response.text}")
-                    
-                    except Exception as e:
-                        st.error(f"❌ Error making prediction: {str(e)}")
-            else:
-                st.warning("⚠️ Please upload at least 2 images for prediction.")
-
-def visualization_page(api_status, health_data):
     """Data visualizations and insights"""
     st.title("Data Visualizations & Insights")
     
@@ -564,7 +668,7 @@ def visualization_page(api_status, health_data):
         """)
         
         # Sequence Length Analysis
-        st.subheader("📏 Feature Analysis 2: Sequence Length Distribution")
+        st.subheader("Feature Analysis 2: Sequence Length Distribution")
         
         try:
             # Load sequences and analyze lengths
@@ -724,7 +828,7 @@ def training_page(api_status, health_data):
             st.success(f"{len(normal_files)} non-accident images selected")
     
     # Upload data button
-    if st.button("📤 Upload Training Data", type="primary"):
+    if st.button("Upload Training Data", type="primary"):
         if accident_files or normal_files:
             with st.spinner("Uploading data..."):
                 try:
@@ -848,7 +952,7 @@ def training_page(api_status, health_data):
             st.warning("⚠️ No existing model")
     
     # Training button
-    if st.button("🚀 Start Retraining", type="primary", use_container_width=True):
+    if st.button("Start Retraining", type="primary", use_container_width=True):
         with st.spinner("🔄 Retraining model... This may take several minutes."):
             try:
                 # Start training
@@ -927,21 +1031,21 @@ def performance_page(api_status, health_data):
         metrics = df_performance['Metric'].tolist()
         
         fig_perf = go.Figure()
-        fig_perf.add_trace(go.Radar(
+        fig_perf.add_trace(go.Scatterpolar(
             r=df_performance['Training'].tolist(),
             theta=metrics,
             fill='toself',
             name='Training',
             line_color='blue'
         ))
-        fig_perf.add_trace(go.Radar(
+        fig_perf.add_trace(go.Scatterpolar(
             r=df_performance['Validation'].tolist(),
             theta=metrics,
             fill='toself',
             name='Validation',
             line_color='red'
         ))
-        fig_perf.add_trace(go.Radar(
+        fig_perf.add_trace(go.Scatterpolar(
             r=df_performance['Test'].tolist(),
             theta=metrics,
             fill='toself',

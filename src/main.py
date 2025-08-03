@@ -2,7 +2,7 @@ from fastapi import FastAPI, File, UploadFile, Form
 from fastapi.staticfiles import StaticFiles
 from src.prediction import predict_image
 from src.model import retrain_model
-from src.preprocessing import load_sequence_data, preprocess_sequence, load_sequence_data_with_mongodb
+from src.preprocessing import load_sequence_data, preprocess_for_prediction, load_sequence_data_with_mongodb
 from src.database import db
 import os
 import shutil
@@ -205,34 +205,6 @@ async def upload_data(files: List[UploadFile] = File(...), label: str = Form(...
         "files_count": len(file_paths)
     }
 
-@app.post("/migrate-dataset")
-async def migrate_dataset_to_mongodb():
-    """Migrate existing file-based dataset to MongoDB with GridFS."""
-    if not db.is_connected():
-        return {"error": "MongoDB not connected"}
-    
-    try:
-        migrated_counts = {}
-        
-        for split in ['train', 'test', 'val']:
-            directory = f"data/{split}"
-            if os.path.exists(directory):
-                # Load sequences from files
-                sequences = db.load_sequences_from_files(directory, max_frames=5)
-                
-                # Store with images in GridFS
-                db.save_sequences_with_images(sequences, split, store_images=True)
-                migrated_counts[split] = len(sequences)
-        
-        return {
-            "status": "Dataset migration completed",
-            "migrated_counts": migrated_counts,
-            "storage_stats": db.get_gridfs_stats()
-        }
-    
-    except Exception as e:
-        return {"error": f"Migration failed: {str(e)}"}
-
 @app.get("/storage-stats")
 async def get_storage_stats():
     """Get MongoDB GridFS storage statistics."""
@@ -240,6 +212,18 @@ async def get_storage_stats():
         return {"error": "MongoDB not connected"}
     
     return db.get_gridfs_stats()
+
+@app.delete("/clear-predictions")
+async def clear_predictions():
+    """Clear all prediction data from database and GridFS."""
+    result = db.clear_prediction_data()
+    return result
+
+@app.delete("/clear-training-data")
+async def clear_training_data():
+    """Clear all uploaded training data from database and GridFS."""
+    result = db.clear_training_data()
+    return result
 
 @app.get("/health")
 async def health():

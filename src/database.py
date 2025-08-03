@@ -419,6 +419,68 @@ class Database:
             
         except Exception as e:
             return {'error': str(e)}
+    
+    def clear_prediction_data(self) -> Dict:
+        """Clear all prediction data including GridFS files with prediction metadata."""
+        if not self.is_connected():
+            return {'success': False, 'error': 'Database not connected'}
+        
+        try:
+            # Clear predictions collection
+            predictions_collection = self.db['predictions']
+            prediction_count = predictions_collection.count_documents({})
+            predictions_collection.delete_many({})
+            
+            # Clear GridFS files with prediction metadata
+            gridfs_deleted = 0
+            if hasattr(self, 'fs') and self.fs:
+                # Find and delete files with prediction purpose
+                for file_doc in self.fs.find({'metadata.purpose': 'prediction'}):
+                    self.fs.delete(file_doc._id)
+                    gridfs_deleted += 1
+            
+            return {
+                'success': True,
+                'message': f'Cleared {prediction_count} predictions and {gridfs_deleted} GridFS files',
+                'predictions_deleted': prediction_count,
+                'gridfs_files_deleted': gridfs_deleted
+            }
+            
+        except Exception as e:
+            return {'success': False, 'error': str(e)}
+    
+    def clear_training_data(self) -> Dict:
+        """Clear all uploaded training data from MongoDB collections and GridFS."""
+        if not self.is_connected():
+            return {'success': False, 'error': 'Database not connected'}
+        
+        try:
+            total_sequences = 0
+            gridfs_deleted = 0
+            
+            # Clear training collections
+            for collection_name in [TRAIN_COLLECTION, TEST_COLLECTION, VAL_COLLECTION]:
+                collection = self.db[collection_name]
+                count = collection.count_documents({})
+                collection.delete_many({})
+                total_sequences += count
+            
+            # Clear GridFS files with training metadata (not prediction files)
+            if hasattr(self, 'fs') and self.fs:
+                # Find and delete files with training/upload purpose
+                for file_doc in self.fs.find({'metadata.purpose': {'$in': ['training', 'upload']}}):
+                    self.fs.delete(file_doc._id)
+                    gridfs_deleted += 1
+            
+            return {
+                'success': True,
+                'message': f'Cleared {total_sequences} training sequences and {gridfs_deleted} GridFS files',
+                'sequences_deleted': total_sequences,
+                'gridfs_files_deleted': gridfs_deleted
+            }
+            
+        except Exception as e:
+            return {'success': False, 'error': str(e)}
 
 # Singleton instance
 db = Database()

@@ -10,11 +10,34 @@ def group_images_by_sequence(directory, max_frames):
     """Load sequences from MongoDB or file system."""
     if db.is_connected():
         split = "train" if "train" in directory else "test" if "test" in directory else "val"
-        sequences = db.load_from_collection(split)
+        sequences = db.load_sequences_with_images(split)
         if sequences:
             print(f"Loaded {len(sequences)} sequences from MongoDB {split} collection")
-            return [seq["image_paths"] for seq in sequences], [seq["label"] for seq in sequences]
-    return db.load_sequences_from_files(directory, max_frames)
+            
+            # Extract sequences and labels from MongoDB data
+            sequence_data = []
+            labels = []
+            
+            for seq in sequences:
+                if seq.get('storage_type') == 'gridfs' and 'image_file_ids' in seq:
+                    # For GridFS stored images, we'll handle them later in the processing pipeline
+                    sequence_data.append(seq['image_file_ids'])
+                    labels.append(seq['label'])
+                elif 'image_paths' in seq and seq.get('images_available', True):
+                    # For file-based images
+                    sequence_data.append(seq['image_paths'])
+                    labels.append(seq['label'])
+            
+            return sequence_data, labels
+    
+    # Load from file system
+    file_sequences = db.load_sequences_from_files(directory, max_frames)
+    if file_sequences:
+        sequence_data = [seq["image_paths"] for seq in file_sequences]
+        labels = [seq["label"] for seq in file_sequences]
+        return sequence_data, labels
+    
+    return [], []
 
 def load_sequence_data(train_dir, test_dir, val_dir, img_size=(224, 224), max_frames=5, batch_size=16):
     """Load and preprocess sequence data for CNN-LSTM model.
@@ -62,39 +85,100 @@ def load_sequence_data(train_dir, test_dir, val_dir, img_size=(224, 224), max_fr
                 for i in batch_indices:
                     sequence = sequences[i]
                     seq_images = []
-                    for img_path in sequence:
-                        img = tf.keras.preprocessing.image.load_img(img_path, target_size=img_size)
-                        img_array = tf.keras.preprocessing.image.img_to_array(img)
+                    
+                    # Ensure we have exactly max_frames images
+                    processed_sequence = list(sequence)
+                    
+                    # If we have fewer frames than max_frames, duplicate the last frame
+                    while len(processed_sequence) < max_frames:
+                        if processed_sequence:
+                            processed_sequence.append(processed_sequence[-1])
+                        else:
+                            # If no frames at all, create a dummy frame
+                            processed_sequence.append(None)
+                    
+                    # If we have more frames than max_frames, take the first max_frames
+                    if len(processed_sequence) > max_frames:
+                        processed_sequence = processed_sequence[:max_frames]
+                    
+                    for item in processed_sequence:
+                        if item is None:
+                            # Create a black image
+                            img_array = np.zeros((*img_size, 3))
+                        elif isinstance(item, str) and (item.startswith('/') or item.startswith('\\') or '.' in item):
+                            # File path
+                            try:
+                                if os.path.exists(item):
+                                    img = tf.keras.preprocessing.image.load_img(item, target_size=img_size)
+                                    img_array = tf.keras.preprocessing.image.img_to_array(img)
+                                else:
+                                    # Create a black image if file doesn't exist
+                                    img_array = np.zeros((*img_size, 3))
+                            except Exception as e:
+                                print(f"Error loading image {item}: {e}")
+                                img_array = np.zeros((*img_size, 3))
+                        else:
+                            # GridFS file ID
+                            try:
+                                image_data = db.retrieve_image_from_gridfs(item)
+                                if image_data:
+                                    # Save to temporary file and load
+                                    import tempfile
+                                    with tempfile.NamedTemporaryFile(delete=False, suffix='.jpg') as temp_file:
+                                        temp_file.write(image_data)
+                                        temp_file.flush()
+                                        img = tf.keras.preprocessing.image.load_img(temp_file.name, target_size=img_size)
+                                        img_array = tf.keras.preprocessing.image.img_to_array(img)
+                                    # Clean up temp file
+                                    os.unlink(temp_file.name)
+                                else:
+                                    # Create a black image if GridFS retrieval fails
+                                    img_array = np.zeros((*img_size, 3))
+                            except Exception as e:
+                                print(f"Error loading image from GridFS: {e}")
+                                img_array = np.zeros((*img_size, 3))
                         
                         # Apply augmentation to individual frames if training
                         if is_training:
                             # Reshape to add batch dimension for datagen
                             img_array = img_array[np.newaxis, ...]
                             # Apply augmentation
-                            img_array = datagen.flow(img_array, batch_size=1)[0][0]
+                            try:
+                                img_array = datagen.flow(img_array, batch_size=1)[0][0]
+                            except:
+                                img_array = img_array[0] / 255.0
                         else:
                             # Just normalize for validation/test
                             img_array = img_array / 255.0
                         
                         seq_images.append(img_array)
                     
-                    seq_images = np.array(seq_images)
+                    # Ensure seq_images has exactly max_frames elements with consistent shape
+                    if len(seq_images) != max_frames:
+                        print(f"Warning: sequence has {len(seq_images)} frames, expected {max_frames}")
+                        # Pad or truncate to max_frames
+                        while len(seq_images) < max_frames:
+                            seq_images.append(np.zeros((*img_size, 3)))
+                        seq_images = seq_images[:max_frames]
+                    
+                    # Convert to numpy array and ensure consistent shape
+                    seq_images = np.array(seq_images)  # Shape: (max_frames, height, width, channels)
                     batch_sequences.append(seq_images)
                     batch_labels.append(labels[i])
                 
                 # Convert to proper batch format: (batch_size, max_frames, height, width, channels)
-                batch_sequences = np.array(batch_sequences)
-                batch_labels = np.array(batch_labels)
-                
-                yield batch_sequences, batch_labels
+                if batch_sequences:
+                    batch_sequences = np.array(batch_sequences)
+                    batch_labels = np.array(batch_labels)
+                    yield batch_sequences, batch_labels
     
     train_generator = generator(train_sequences, train_labels, train_datagen, batch_size, is_training=True)
     test_generator = generator(test_sequences, test_labels, val_test_datagen, batch_size, is_training=False)
     val_generator = generator(val_sequences, val_labels, val_test_datagen, batch_size, is_training=False)
     
-    steps_per_epoch = len(train_sequences) // batch_size
-    validation_steps = len(val_sequences) // batch_size
-    test_steps = len(test_sequences) // batch_size
+    steps_per_epoch = max(1, len(train_sequences) // batch_size) if train_sequences else 1
+    validation_steps = max(1, len(val_sequences) // batch_size) if val_sequences else 1
+    test_steps = max(1, len(test_sequences) // batch_size) if test_sequences else 1
     
     return (train_generator, steps_per_epoch), (test_generator, test_steps), (val_generator, validation_steps)
 
@@ -115,26 +199,17 @@ def preprocess_for_prediction(image_paths, img_size=(224, 224), max_frames=5):
         img_array = tf.keras.preprocessing.image.img_to_array(img)
         img_array = img_array / 255.0
         seq_images.append(img_array)
+    
+    # Ensure exactly max_frames
     if len(seq_images) < max_frames:
-        seq_images += [seq_images[-1]] * (max_frames - len(seq_images))
-    else:
-        seq_images = seq_images[:max_frames] 
+        seq_images.extend([seq_images[-1]] * (max_frames - len(seq_images)))
+    elif len(seq_images) > max_frames:
+        seq_images = seq_images[:max_frames]
+    
     return np.array([seq_images])
 
 def load_sequence_data_with_mongodb(train_dir=None, test_dir=None, val_dir=None, img_size=(224, 224), max_frames=5, batch_size=16, use_mongodb=True):
-    """Load and preprocess sequence data for CNN-LSTM model with MongoDB support.
-    
-    Args:
-        train_dir, test_dir, val_dir (str): Paths to dataset directories (optional if using MongoDB).
-        img_size (tuple): Image size (height, width).
-        max_frames (int): Number of frames per sequence.
-        batch_size (int): Batch size for generators.
-        use_mongodb (bool): Whether to load from MongoDB GridFS in addition to files.
-    
-    Returns:
-        Tuple of (generator, steps) for train, test, and validation sets.
-    """
-    from src.database import db
+    """Enhanced version that combines file-based and MongoDB data for training."""
     import tempfile
     
     # Combine file-based and MongoDB data
@@ -155,26 +230,17 @@ def load_sequence_data_with_mongodb(train_dir=None, test_dir=None, val_dir=None,
                 
                 for seq in mongo_sequences:
                     if seq.get('storage_type') == 'gridfs' and 'image_file_ids' in seq:
-                        # Extract images from GridFS to temporary files
-                        temp_paths = []
-                        for file_id in seq['image_file_ids']:
-                            image_data = db.retrieve_image_from_gridfs(file_id)
-                            if image_data:
-                                # Create temporary file
-                                temp_file = tempfile.NamedTemporaryFile(delete=False, suffix='.jpg')
-                                temp_file.write(image_data)
-                                temp_file.close()
-                                temp_paths.append(temp_file.name)
+                        # We'll keep the GridFS IDs and handle them in the generator
+                        file_ids = seq['image_file_ids']
                         
-                        if temp_paths:
-                            # Ensure we have exactly max_frames
-                            if len(temp_paths) < max_frames:
-                                temp_paths.extend([temp_paths[-1]] * (max_frames - len(temp_paths)))
-                            elif len(temp_paths) > max_frames:
-                                temp_paths = temp_paths[:max_frames]
-                            
-                            all_sequences.append(temp_paths)
-                            all_labels.append(seq['label'])
+                        # Ensure we have exactly max_frames
+                        if len(file_ids) < max_frames:
+                            file_ids.extend([file_ids[-1]] * (max_frames - len(file_ids)))
+                        elif len(file_ids) > max_frames:
+                            file_ids = file_ids[:max_frames]
+                        
+                        all_sequences.append(file_ids)
+                        all_labels.append(seq['label'])
                     
                     elif 'image_paths' in seq and seq.get('images_available', True):
                         # Use existing file paths
@@ -202,7 +268,7 @@ def load_sequence_data_with_mongodb(train_dir=None, test_dir=None, val_dir=None,
     print(f"Total test sequences: {len(test_sequences)}")
     print(f"Total validation sequences: {len(val_sequences)}")
     
-    # Use existing data generators
+    # Create data generators
     train_datagen = ImageDataGenerator(
         rescale=1./255,
         rotation_range=30,        
@@ -219,50 +285,114 @@ def load_sequence_data_with_mongodb(train_dir=None, test_dir=None, val_dir=None,
     val_test_datagen = ImageDataGenerator(rescale=1./255)
     
     def generator(sequences, labels, datagen, batch_size, is_training=True):
-        indices = np.arange(len(sequences))
         while True:
+            indices = np.arange(len(sequences))
             if is_training:
                 np.random.shuffle(indices)
             
-            for start in range(0, len(sequences), batch_size):
-                end = min(start + batch_size, len(sequences))
-                batch_indices = indices[start:end]
-                
+            # Process in batches
+            for batch_start in range(0, len(indices), batch_size):
+                batch_indices = indices[batch_start:batch_start + batch_size]
                 batch_sequences = []
                 batch_labels = []
                 
-                for idx in batch_indices:
-                    sequence_images = []
+                for i in batch_indices:
+                    sequence = sequences[i]
+                    seq_images = []
                     
-                    for img_path in sequences[idx]:
-                        try:
-                            img = tf.keras.preprocessing.image.load_img(img_path, target_size=img_size)
-                            img_array = tf.keras.preprocessing.image.img_to_array(img)
-                            
-                            if is_training:
-                                img_array = datagen.random_transform(img_array)
-                            
-                            img_array = datagen.standardize(img_array)
-                            sequence_images.append(img_array)
-                        except Exception as e:
-                            print(f"Error loading image {img_path}: {e}")
-                            # Use a black image as fallback
+                    # Ensure we have exactly max_frames images
+                    processed_sequence = list(sequence)
+                    
+                    # If we have fewer frames than max_frames, duplicate the last frame
+                    while len(processed_sequence) < max_frames:
+                        if processed_sequence:
+                            processed_sequence.append(processed_sequence[-1])
+                        else:
+                            # If no frames at all, create a dummy frame
+                            processed_sequence.append(None)
+                    
+                    # If we have more frames than max_frames, take the first max_frames
+                    if len(processed_sequence) > max_frames:
+                        processed_sequence = processed_sequence[:max_frames]
+                    
+                    for item in processed_sequence:
+                        if item is None:
+                            # Create a black image
                             img_array = np.zeros((*img_size, 3))
-                            sequence_images.append(img_array)
+                        elif isinstance(item, str) and (item.startswith('/') or item.startswith('\\') or '.' in item):
+                            # File path
+                            try:
+                                if os.path.exists(item):
+                                    img = tf.keras.preprocessing.image.load_img(item, target_size=img_size)
+                                    img_array = tf.keras.preprocessing.image.img_to_array(img)
+                                else:
+                                    # Create a black image if file doesn't exist
+                                    img_array = np.zeros((*img_size, 3))
+                            except Exception as e:
+                                print(f"Error loading image {item}: {e}")
+                                img_array = np.zeros((*img_size, 3))
+                        else:
+                            # GridFS file ID
+                            try:
+                                image_data = db.retrieve_image_from_gridfs(item)
+                                if image_data:
+                                    # Save to temporary file and load
+                                    import tempfile
+                                    with tempfile.NamedTemporaryFile(delete=False, suffix='.jpg') as temp_file:
+                                        temp_file.write(image_data)
+                                        temp_file.flush()
+                                        img = tf.keras.preprocessing.image.load_img(temp_file.name, target_size=img_size)
+                                        img_array = tf.keras.preprocessing.image.img_to_array(img)
+                                    # Clean up temp file
+                                    os.unlink(temp_file.name)
+                                else:
+                                    # Create a black image if GridFS retrieval fails
+                                    img_array = np.zeros((*img_size, 3))
+                            except Exception as e:
+                                print(f"Error loading image from GridFS: {e}")
+                                img_array = np.zeros((*img_size, 3))
+                        
+                        # Apply augmentation to individual frames if training
+                        if is_training:
+                            # Reshape to add batch dimension for datagen
+                            img_array = img_array[np.newaxis, ...]
+                            # Apply augmentation
+                            try:
+                                img_array = datagen.flow(img_array, batch_size=1)[0][0]
+                            except:
+                                img_array = img_array[0] / 255.0
+                        else:
+                            # Just normalize for validation/test
+                            img_array = img_array / 255.0
+                        
+                        seq_images.append(img_array)
                     
-                    batch_sequences.append(sequence_images)
-                    batch_labels.append(labels[idx])
+                    # Ensure seq_images has exactly max_frames elements with consistent shape
+                    if len(seq_images) != max_frames:
+                        print(f"Warning: sequence has {len(seq_images)} frames, expected {max_frames}")
+                        # Pad or truncate to max_frames
+                        while len(seq_images) < max_frames:
+                            seq_images.append(np.zeros((*img_size, 3)))
+                        seq_images = seq_images[:max_frames]
+                    
+                    # Convert to numpy array and ensure consistent shape
+                    seq_images = np.array(seq_images)  # Shape: (max_frames, height, width, channels)
+                    batch_sequences.append(seq_images)
+                    batch_labels.append(labels[i])
                 
-                yield np.array(batch_sequences), np.array(batch_labels)
-    
-    # Calculate steps
-    train_steps = max(1, len(train_sequences) // batch_size)
-    test_steps = max(1, len(test_sequences) // batch_size) if test_sequences else 1
-    val_steps = max(1, len(val_sequences) // batch_size) if val_sequences else 1
+                # Convert to proper batch format: (batch_size, max_frames, height, width, channels)
+                if batch_sequences:
+                    batch_sequences = np.array(batch_sequences)
+                    batch_labels = np.array(batch_labels)
+                    yield batch_sequences, batch_labels
     
     # Create generators
-    train_gen = generator(train_sequences, train_labels, train_datagen, batch_size, True)
-    test_gen = generator(test_sequences, test_labels, val_test_datagen, batch_size, False) if test_sequences else None
-    val_gen = generator(val_sequences, val_labels, val_test_datagen, batch_size, False) if val_sequences else None
+    train_generator = generator(train_sequences, train_labels, train_datagen, batch_size, is_training=True)
+    test_generator = generator(test_sequences, test_labels, val_test_datagen, batch_size, is_training=False)
+    val_generator = generator(val_sequences, val_labels, val_test_datagen, batch_size, is_training=False)
     
-    return (train_gen, train_steps), (test_gen, test_steps), (val_gen, val_steps)
+    steps_per_epoch = max(1, len(train_sequences) // batch_size) if train_sequences else 1
+    validation_steps = max(1, len(val_sequences) // batch_size) if val_sequences else 1
+    test_steps = max(1, len(test_sequences) // batch_size) if test_sequences else 1
+    
+    return (train_generator, steps_per_epoch), (test_generator, test_steps), (val_generator, validation_steps)
