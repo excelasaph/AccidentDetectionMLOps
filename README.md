@@ -178,22 +178,7 @@ The project includes a comprehensive Jupyter notebook (`notebook/accident_detect
 - **Data Exploration**: Class distribution, image quality analysis
 - **Model Architecture**: CNN+LSTM with transfer learning
 - **Training Process**: Early stopping, learning rate scheduling, model checkpointing
-- **Evaluation**: Comprehensive metrics including confusion matrix, ROC curves
-
-### Model Performance
-- **Architecture**: MobileNetV2 + LSTM temporal model
-- **Validation Accuracy**: 92.5%
-- **Training Features**: Transfer learning, dropout regularization, batch normalization
-- **Input Format**: Sequential images (224x224x3)
-- **Classes**: Binary classification (Accident/No Accident)
-
-### Retraining Pipeline
-1. **Data Ingestion**: Combines file-based data with MongoDB uploaded images
-2. **Model Loading**: Loads existing model or creates new architecture
-3. **Training**: Automated training with callbacks and validation
-4. **Evaluation**: Performance metrics on test data
-5. **Model Saving**: Automatic model versioning and backup
-
+- **Evaluation**: Metrics including confusion matrix, ROC curves
 
 ### Model Architecture
 
@@ -202,8 +187,14 @@ The project includes a comprehensive Jupyter notebook (`notebook/accident_detect
 - **Temporal Processing**: LSTM layers for sequence analysis
 - **Input**: 2-5 sequential images (224x224x3)
 - **Output**: Binary classification (Accident/No Accident)
-- **Performance**: 92.5% validation accuracy
-- **Features**: Transfer learning, dropout regularization, batch normalization
+
+### Model Performance
+- **Architecture**: MobileNetV2 + LSTM temporal model
+- **Accuracy**: 0.5333 (53.3%)
+- **Loss**: 0.8325
+- **F1 Score**: 0.6866 (68.7%)
+- **Precision**: 0.5227 (52.3%)
+- **Recall**: 1.0000 (100.0%)
 
 #### Training Pipeline
 - **Data Augmentation**: Rotation, brightness, zoom, horizontal flip
@@ -241,11 +232,11 @@ locust -f src/locustfile.py --host=https://accidentdetectionmlops.onrender.com \
 ### Load Test Visuals
 
 <div align="center">
-    <img src="locust_load_test/Locust File Load Test 1.png" width="400" />
+    <img src="locust_load_test/Locust File Load Test 1.png" width="600" />
     <br>
-    <img src="locust_load_test/Locust File Load Test 2.png" width="400" />
+    <img src="locust_load_test/Locust File Load Test 2.png" width="600" />
     <br>
-    <img src="locust_load_test/Locust File Load Test 3.png" width="400" />
+    <img src="locust_load_test/Locust File Load Test 3.png" width="600" />
 </div>
 
 ## Project Structure
