@@ -201,6 +201,25 @@ The project includes a comprehensive Jupyter notebook (`notebook/accident_detect
 - **Callbacks**: Early stopping, model checkpointing, reduce LR on plateau
 - **Evaluation**: Accuracy, precision, recall, F1-score metrics
 
+#### Key Features Visualization in `static/images`
+
+##### Class Distribution
+The class distribution bar plot shows the number of accident and non-accident images in the training set. If the classes are imbalanced (e.g., far more non-accident images), the model may learn to favor the majority class, leading to biased predictions. 
+
+A balanced dataset helps the model generalize better and detect accidents more reliably.
+
+##### Image Brightness Distribution
+The brightness histogram reveals how lighting conditions vary across accident and non-accident images. 
+
+If accident images tend to be darker or brighter than non-accident images, the model might use brightness as a cue for classification. This could indicate a potential bias if lighting is correlated with accident scenes, or it may highlight the need for augmentation to ensure robustness.
+
+##### Edge Density Distribution
+Edge density measures the amount of structural detail in an image. Accident scenes may have higher edge density due to debris, vehicles, or chaotic backgrounds, while non-accident scenes might be smoother. 
+
+If the edge density distribution differs significantly between classes, it suggests the model could use this feature for distinguishing accidents, but it also warns of overfitting if the difference is due to dataset artifacts.
+
+---
+
 ## Load Testing & Performance
 
 ### Locust Configuration
