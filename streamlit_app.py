@@ -16,6 +16,13 @@ from datetime import datetime
 import os
 import sys
 
+# Load environment variables for local development
+try:
+    from dotenv import load_dotenv
+    load_dotenv()
+except ImportError:
+    pass  # dotenv not available in production, which is fine
+
 # Add src to path for imports
 sys.path.append(os.path.join(os.path.dirname(__file__), 'src'))
 
@@ -55,7 +62,7 @@ st.markdown("""
 """, unsafe_allow_html=True)
 
 # Constants
-API_BASE_URL = "http://localhost:8000"  # Use localhost instead of 0.0.0.0
+API_BASE_URL = os.getenv("FASTAPI_URL", "http://localhost:8000")  # Use environment variable for deployed version
 
 def check_api_health():
     """Check if the API is running"""

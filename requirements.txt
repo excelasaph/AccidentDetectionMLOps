@@ -24,6 +24,7 @@ plotly
 requests
 Pillow
 psutil
+python-dotenv
 
 # Existing project requirements
 opencv-python
