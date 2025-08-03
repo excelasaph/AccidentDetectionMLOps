@@ -232,11 +232,11 @@ locust -f src/locustfile.py --host=https://accidentdetectionmlops.onrender.com \
 ### Load Test Visuals
 
 <div align="center">
-    <img src="locust_load_test/Locust File Load Test 1.png" width="600" />
+    <img src="locust_load_test/Locust File Load Test 1.png" width="900" />
     <br>
-    <img src="locust_load_test/Locust File Load Test 2.png" width="600" />
+    <img src="locust_load_test/Locust File Load Test 2.png" width="900" />
     <br>
-    <img src="locust_load_test/Locust File Load Test 3.png" width="600" />
+    <img src="locust_load_test/Locust File Load Test 3.png" width="900" />
 </div>
 
 ## Project Structure
