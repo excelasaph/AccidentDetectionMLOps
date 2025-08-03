@@ -1,6 +1,6 @@
 # Accident Detection MLOps Pipeline
 
-A comprehensive machine learning pipeline for real-time accident detection from CCTV footage using deep learning, with complete MLOps infrastructure including FastAPI backend, MongoDB storage, Streamlit dashboard, and automated deployment.
+A machine learning pipeline for real-time accident detection from CCTV footage using deep learning, with complete MLOps infrastructure including FastAPI backend, MongoDB storage, Streamlit dashboard, and automated deployment.
 
 ## Project Overview
 
@@ -10,11 +10,11 @@ This project implements an end-to-end MLOps pipeline for accident detection that
 
 - **Deep Learning Pipeline**: CNN+LSTM model with MobileNetV2 backbone for temporal sequence analysis
 - **Real-time API**: FastAPI with 11+ endpoints for predictions, training, and data management  
-- **Data Management**: MongoDB with GridFS for scalable image storage and metadata tracking
+- **Data Management**: MongoDB with GridFS for image storage and metadata tracking
 - **Interactive Dashboard**: Streamlit web interface for predictions, analytics, and model management
-- **MLOps Infrastructure**: Automated training, evaluation, model versioning, and deployment
-- **Performance Testing**: Locust-based load testing for production readiness
-- **Cloud Deployment**: Render deployment with health monitoring and auto-scaling
+- **MLOps Infrastructure**:  training, evaluation, model versioning, and deployment
+- **Performance Testing**: Locust-based load testing 
+- **Cloud Deployment**: Render deployment 
 
 ## Architecture
 
@@ -46,6 +46,14 @@ This project implements an end-to-end MLOps pipeline for accident detection that
 - **Optimization**: Adam optimizer with learning rate scheduling
 - **Callbacks**: Early stopping, model checkpointing, reduce LR on plateau
 - **Evaluation**: Accuracy, precision, recall, F1-score metrics
+
+
+## Deployment
+   - FastAPI (on RENDER): [http://accidentdetectionmlops/docs](https://accidentdetectionmlops.onrender.com/docs)
+   - Streamlit Dashboard: [http://accidentdetection.streamlit.app](https://accidentdetection.streamlit.app/)
+
+## Demo Video
+- YouTube : [http://accidentdetectionmlops/docs](https://accidentdetectionmlops.onrender.com/docs)
 
 ## Quick Start
 
@@ -234,27 +242,27 @@ locust -f src/locustfile.py --host=https://accidentdetectionmlops.onrender.com \
 
 ```
 AccidentDetectionMLOps/
-├── src/                          # Core application code
-│   ├── main.py                  # FastAPI application with 11 endpoints
-│   ├── model.py                 # CNN+LSTM model architecture
-│   ├── preprocessing.py         # Data preprocessing and augmentation
-│   ├── prediction.py            # Prediction logic and inference
-│   ├── database.py              # MongoDB integration and GridFS
-│   ├── locustfile.py            # Load testing scenarios
-│   └── api/                     # Additional API routes
-├── data/                        # Dataset storage
-│   ├── train/                   # Training images (Accident/Non Accident)
-│   ├── test/                    # Test images
-│   └── val/                     # Validation images
-├── models/                      # Trained models
-│   └── accident_model.keras     # Production model
-├── notebook/                    # Jupyter notebooks
-│   └── accident_detection.ipynb # Model development and analysis
-├── static/                      # Static files and visualizations
-├── streamlit_app.py             # Streamlit dashboard application
-├── requirements.txt             # Python dependencies
-├── runtime.txt                  # Python version for Render deployment
-└── README.md                    # Project documentation
+├── src/                         
+│   ├── main.py                  
+│   ├── model.py                 
+│   ├── preprocessing.py         
+│   ├── prediction.py           
+│   ├── database.py              
+│   ├── locustfile.py            
+│   └── api/                     
+├── data/                       
+│   ├── train/                  
+│   ├── test/                    
+│   └── val/                     
+├── models/                      
+│   └── accident_model.keras     
+├── notebook/                    
+│   └── accident_detection.ipynb 
+├── static/                      
+├── streamlit_app.py            
+├── requirements.txt            
+├── runtime.txt                  
+└── README.md                    
 ```
 
 ## Deployment
@@ -277,49 +285,6 @@ streamlit run streamlit_app.py
 locust -f src/locustfile.py --host=http://localhost:8000
 ```
 
-## Assignment Completion Checklist
-
-### ✅ **Completed Requirements (40/45 points)**
-- [x] **Data Acquisition**: Kaggle dataset with proper train/test/val splits
-- [x] **Data Processing**: Comprehensive preprocessing pipeline with augmentation
-- [x] **Model Creation**: CNN+LSTM architecture with MobileNetV2 backbone
-- [x] **Model Testing**: Multiple evaluation metrics, confusion matrix, ROC curves
-- [x] **Model Retraining**: `/retrain` endpoint with MongoDB integration
-- [x] **API Creation**: FastAPI with 11+ endpoints for complete MLOps functionality
-- [x] **UI Creation**: Streamlit dashboard with 7 interactive pages
-- [x] **Model Deployment**: Production deployment on Render with health monitoring
-- [x] **Data Visualizations**: Multiple charts, analytics, and performance metrics
-- [x] **Prediction Interface**: Multi-image upload with real-time inference
-- [x] **Training Management**: File upload, data labeling, one-click retraining
-- [x] **Performance Testing**: Locust load testing with multiple user scenarios
-
-### ⚠️ **Pending Requirements (5 points)**
-- [ ] **Video Demo**: YouTube demonstration with camera presentation (5 points)
-
-### 📊 **Rubric Performance**
-- **Data Processing & Model**: 10/10 points ✅
-- **API Development**: 10/10 points ✅
-- **UI/Dashboard**: 10/10 points ✅
-- **Deployment**: 10/10 points ✅
-- **Video Demo**: 0/5 points ⏳
-
-**Current Score**: 40/45 points (89%)
-
-## Technical Highlights
-
-### MLOps Infrastructure
-- **CI/CD Pipeline**: Automated deployment with Render
-- **Model Versioning**: Backup and restore functionality
-- **Health Monitoring**: Real-time API status and system metrics
-- **Performance Testing**: Comprehensive load testing with Locust
-- **Data Pipeline**: MongoDB integration with GridFS for scalable storage
-
-### Production Features
-- **Memory Optimization**: CPU-only TensorFlow for cloud deployment
-- **Error Handling**: Comprehensive error handling and logging
-- **Data Validation**: Input validation and sanitization
-- **Security**: CORS configuration and safe file handling
-- **Scalability**: Async FastAPI with database connection pooling
 
 ## Dataset Information
 
@@ -346,15 +311,10 @@ locust -f src/locustfile.py --host=http://localhost:8000
 - **Health Check**: https://accidentdetectionmlops.onrender.com/health
 
 ### 📺 Video Demo
-[YouTube Video Demo](Insert your YouTube link here) - *Pending creation*
+[YouTube Video Demo](https://youtube.com) - *Pending creation*
 
 ### 🛠️ Development Resources
 - **GitHub Repository**: https://github.com/excelasaph/AccidentDetectionMLOps
 - **Jupyter Notebook**: `notebook/accident_detection.ipynb`
 - **Load Testing**: `src/locustfile.py`
 
-**Team Members**:
-- **Excel Asaph** - Project Lead, ML Engineering, Deployment
-- **Nicolle Marizani** - Data Processing, Model Development  
-- **Chance Karambizi** - API Development, Testing
-- **Diana Ruzindana** - UI/UX, Documentation, Quality Assurance
