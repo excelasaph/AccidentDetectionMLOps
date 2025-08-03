@@ -1,10 +1,14 @@
+# Force CPU-only mode for deployment
+import os
+os.environ['CUDA_VISIBLE_DEVICES'] = '-1'
+os.environ['TF_CPP_MIN_LOG_LEVEL'] = '2'
+
 from fastapi import FastAPI, File, UploadFile, Form
 from fastapi.staticfiles import StaticFiles
 from src.prediction import predict_image
 from src.model import retrain_model
 from src.preprocessing import load_sequence_data, preprocess_for_prediction, load_sequence_data_with_mongodb
 from src.database import db
-import os
 import shutil
 import glob
 from typing import List
