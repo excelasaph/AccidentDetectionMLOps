@@ -28,4 +28,3 @@ psutil
 # Existing project requirements
 opencv-python
 pymongo
-gridfs
