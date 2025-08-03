@@ -73,52 +73,78 @@ class Database:
             print(f"Cleared collection {collection_name}")
 
     def load_sequences_from_files(self, directory: str, max_frames: int = 5) -> List[Dict]:
-        """Load sequences from file system, mimicking group_images_by_sequence."""
+        """Load sequences from file system, supporting new naming convention."""
         image_files = glob.glob(os.path.join(directory, '*/*'))
         sequences = {}
+        
         for file in image_files:
             filename = os.path.basename(file)
             parent_dir = os.path.basename(os.path.dirname(file))
             
-            if '_' in filename:
-                base_sequence_id = '_'.join(filename.split('_')[:-1])
-            else:
-                base_sequence_id = filename.split('.')[0]
+            parts = filename.split('_')
             
-            # Include parent directory to avoid conflicts between Accident/Non-Accident
-            sequence_id = f"{parent_dir}_{base_sequence_id}"
+            if len(parts) >= 4:
+                # Handle new format
+                if parts[0] == 'non' and len(parts) >= 5:
+                    # non_accident_train_1_1.jpg
+                    sequence_num = parts[3]  # '1'
+                elif parts[0] == 'accident':
+                    # accident_train_1_1.jpg  
+                    sequence_num = parts[2]  # '1'
+                else:
+                    # Fallback
+                    sequence_id = f"{parent_dir}_{filename.split('.')[0]}"
+                    if sequence_id not in sequences:
+                        sequences[sequence_id] = []
+                    sequences[sequence_id].append(file)
+                    continue
+                
+                # Create sequence_id
+                sequence_id = f"{parent_dir}_{sequence_num}"
+                
+            else:
+                # Old format fallback
+                base_id = '_'.join(filename.split('_')[:-1]) if '_' in filename else filename.split('.')[0]
+                sequence_id = f"{parent_dir}_{base_id}"
             
             if sequence_id not in sequences:
                 sequences[sequence_id] = []
             sequences[sequence_id].append(file)
-
+        
         result = []
         for seq_id, files in sequences.items():
+            if len(files) == 0:
+                continue
+                
+            # Sort by frame number
             try:
                 files.sort(key=lambda x: int(os.path.basename(x).split('_')[-1].split('.')[0]))
             except:
                 files.sort()
-            if len(files) == 0:
-                continue
+                
+            # Determine label from parent directory
             parent_dir = os.path.basename(os.path.dirname(files[0]))
             label = 1 if parent_dir == 'Accident' else 0
-            if len(files) >= 1:
-                if len(files) > max_frames:
-                    files = files[:max_frames]
-                else:
-                    while len(files) < max_frames:
-                        files.append(files[-1])
-                split = "train" if "train" in directory else "test" if "test" in directory else "val"
-                
-                # Remove parent directory prefix from sequence_id for cleaner storage
-                clean_sequence_id = seq_id.split('_', 1)[1] if '_' in seq_id else seq_id
-                
-                result.append({
-                    "sequence_id": clean_sequence_id,
-                    "image_paths": files,
-                    "label": label,
-                    "split": split
-                })
+            
+            # Handle max_frames
+            if len(files) > max_frames:
+                files = files[:max_frames]
+            else:
+                while len(files) < max_frames:
+                    files.append(files[-1])
+            
+            # Determine split
+            split = "train" if "train" in directory else "test" if "test" in directory else "val"
+            
+            # Clean sequence_id for storage
+            clean_sequence_id = seq_id.split('_', 1)[1] if '_' in seq_id else seq_id
+            
+            result.append({
+                "sequence_id": clean_sequence_id,
+                "image_paths": files,
+                "label": label,
+                "split": split
+            })
         print(f"Loaded {len(result)} sequences from {directory}")
         return result
 

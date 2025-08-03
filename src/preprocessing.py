@@ -7,11 +7,11 @@ import os
 from collections import defaultdict
 
 # def group_images_by_sequence(directory, max_frames):
-#     """Group images into sequences based on naming convention (e.g., test10_*).
+#     """Group images into sequences based on naming convention.
     
 #     Args:
 #         directory (str): Path to directory (e.g., 'data/train').
-#         max_frames (int): Maximum number of frames per sequence (truncates if > max_frames, pads if < max_frames).
+#         max_frames (int): Maximum number of frames per sequence.
     
 #     Returns:
 #         sequences (list): List of sequences, each containing up to max_frames image paths.
@@ -22,10 +22,25 @@ from collections import defaultdict
     
 #     for file in image_files:
 #         filename = os.path.basename(file)
+#         parent_dir = os.path.basename(os.path.dirname(file))
         
-#         # Handle different filename patterns
-#         if '_' in filename:
-#             # Standard pattern: test10_33.jpg
+#         # Handle new naming convention: {folder_name}_{split}_{sequence_number}_{frame_number}.jpg
+#         if filename.count('_') >= 3:
+#             # New format: accident_train_1_1.jpg or non_accident_test_2_5.jpg
+#             parts = filename.split('_')
+#             if len(parts) >= 4:
+#                 # Extract sequence_number for grouping
+#                 folder_name = parts[0] if parts[0] != 'non' else f"{parts[0]}_{parts[1]}"
+#                 if folder_name == 'non':
+#                     sequence_num = parts[3]
+#                 else:
+#                     sequence_num = parts[2]
+#                 sequence_id = f"{parent_dir}_{sequence_num}"
+#             else:
+#                 # Fallback for unexpected format
+#                 sequence_id = '_'.join(filename.split('_')[:-1])
+#         elif '_' in filename:
+#             # Old pattern: test10_33.jpg
 #             sequence_id = '_'.join(filename.split('_')[:-1])
 #         else:
 #             # Handle files like acc1 (1).jpg or other patterns
@@ -35,7 +50,7 @@ from collections import defaultdict
     
 #     for seq in sequences:
 #         try:
-#             # Try standard pattern first (test10_33.jpg -> 33)
+#             # Sort by frame number (last part before .jpg)
 #             sequences[seq].sort(key=lambda x: int(os.path.basename(x).split('_')[-1].split('.')[0]))
 #         except (ValueError, IndexError):
 #             try:
@@ -98,14 +113,24 @@ def load_sequence_data(train_dir, test_dir, val_dir, img_size=(224, 224), max_fr
     val_sequences, val_labels = group_images_by_sequence(val_dir, max_frames)
     
     train_datagen = ImageDataGenerator(
+        # rescale=1./255,
+        # rotation_range=20, 
+        # width_shift_range=0.1, 
+        # height_shift_range=0.1,  
+        # shear_range=0.1,  
+        # zoom_range=0.1,  
+        # horizontal_flip=True,
+        # brightness_range=[0.9, 1.1],
+        # fill_mode='nearest'
         rescale=1./255,
-        rotation_range=20, 
-        width_shift_range=0.1, 
-        height_shift_range=0.1,  
-        shear_range=0.1,  
-        zoom_range=0.1,  
+        rotation_range=30,        # Increased from 20
+        width_shift_range=0.15,   # Increased from 0.1  
+        height_shift_range=0.15,  # Increased from 0.1
+        shear_range=0.15,         # Increased from 0.1
+        zoom_range=0.15,          # Increased from 0.1
         horizontal_flip=True,
-        brightness_range=[0.9, 1.1],
+        brightness_range=[0.8, 1.2],  # Increased range
+        channel_shift_range=0.1,       # New
         fill_mode='nearest'
     )
     
