@@ -23,9 +23,9 @@ class ImageStorage:
             self.fs = gridfs.GridFS(self.db)  # GridFS for large file storage
             self.client.server_info()  # Test connection
             self.connected = True
-            print("✅ Connected to MongoDB with GridFS support")
+            print("Connected to MongoDB with GridFS support")
         except Exception as e:
-            print(f"❌ Failed to connect to MongoDB: {e}")
+            print(f"Failed to connect to MongoDB: {e}")
             self.connected = False
 
     def store_image(self, image_path: str, metadata: Dict = None) -> Optional[str]:
