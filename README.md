@@ -1,10 +1,10 @@
 # Accident Detection MLOps Pipeline
 
-A machine learning pipeline for real-time accident detection from CCTV footage using deep learning, with complete MLOps infrastructure including FastAPI backend, MongoDB storage, Streamlit dashboard, and automated deployment.
+A machine learning pipeline for real-time accident detection from CCTV footage using deep learning, with complete MLOps infrastructure including FastAPI backend, MongoDB storage, and Streamlit dashboard.
 
 ## Project Overview
 
-This project implements an end-to-end MLOps pipeline for accident detection that analyzes sequential images from CCTV footage to predict accident occurrences. The system features a CNN+LSTM architecture, comprehensive data management, and production-ready deployment infrastructure.
+This project implements an end-to-end MLOps pipeline for accident detection that analyzes sequential images from CCTV footage (frame sequences) to predict accident occurrences. The system features a CNN+LSTM architecture.
 
 ### Key Features
 
@@ -31,29 +31,14 @@ This project implements an end-to-end MLOps pipeline for accident detection that
 └─────────────────┘    └─────────────────┘    └─────────────────┘
 ```
 
-## Model Architecture
+## Demo & Resources
 
-### CNN+LSTM Temporal Model
-- **Base Model**: MobileNetV2 (pre-trained on ImageNet)
-- **Temporal Processing**: LSTM layers for sequence analysis
-- **Input**: 2-5 sequential images (224x224x3)
-- **Output**: Binary classification (Accident/No Accident)
-- **Performance**: 92.5% validation accuracy
-- **Features**: Transfer learning, dropout regularization, batch normalization
+### 🔗 Live Application
+- **Fast API**: [https://accidentdetectionmlops.onrender.com/docs](https://accidentdetectionmlops.onrender.com/docs)
+- **Streamlit App**: [https://accidentdetection.streamlit.app/](https://accidentdetection.streamlit.app/)
 
-### Training Pipeline
-- **Data Augmentation**: Rotation, brightness, zoom, horizontal flip
-- **Optimization**: Adam optimizer with learning rate scheduling
-- **Callbacks**: Early stopping, model checkpointing, reduce LR on plateau
-- **Evaluation**: Accuracy, precision, recall, F1-score metrics
-
-
-## Deployment
-   - FastAPI (on RENDER): [http://accidentdetectionmlops/docs](https://accidentdetectionmlops.onrender.com/docs)
-   - Streamlit Dashboard: [http://accidentdetection.streamlit.app](https://accidentdetection.streamlit.app/)
-
-## Demo Video
-- YouTube : [http://accidentdetectionmlops/docs](https://accidentdetectionmlops.onrender.com/docs)
+### Video Demo
+[YouTube Video Demo](https://youtu.be/sE3PN04jSgg)
 
 ## Quick Start
 
@@ -104,12 +89,29 @@ This project implements an end-to-end MLOps pipeline for accident detection that
    - FastAPI Docs: http://localhost:8000/docs
    - Streamlit Dashboard: http://localhost:8501
 
-## API Documentation
+## Dataset Information
 
-### Base URL
-- **Local**: `http://localhost:8000`
-- **Production**: `https://accidentdetectionmlops.onrender.com`
-- **API Docs**: `/docs` (Interactive Swagger documentation)
+**Source**: [Accident Detection From CCTV Footage](https://www.kaggle.com/datasets/ckay16/accident-detection-from-cctv-footage)
+
+**Statistics**:
+- **Training Images**: 1,500+ images per class
+- **Test Images**: 300+ images per class  
+- **Validation Images**: 200+ images per class
+- **Format**: JPG images (various resolutions)
+- **Classes**: Binary classification (Accident/No Accident)
+
+**Preprocessing**:
+- Resize to 224x224 pixels
+- Normalization to [0,1] range
+- Data augmentation (rotation, brightness, zoom)
+- Sequence generation for temporal analysis
+
+
+
+### 🛠️ Resources
+- **Jupyter Notebook**: `notebook/accident_detection.ipynb`
+- **Load Testing**: `src/locustfile.py`
+
 
 ### Core Endpoints
 
@@ -193,23 +195,22 @@ The project includes a comprehensive Jupyter notebook (`notebook/accident_detect
 4. **Evaluation**: Performance metrics on test data
 5. **Model Saving**: Automatic model versioning and backup
 
-## Streamlit Dashboard Features
 
-### Interactive Pages
-- **Dashboard**: Overview of system status and key metrics
-- **Prediction Interface**: Upload images and get real-time predictions
-- **Analytics**: Prediction history, statistics, and visualizations
-- **Training Management**: Upload training data and trigger retraining
-- **Model Performance**: Training history and evaluation metrics
-- **Data Visualizations**: Dataset insights and model analysis
-- **System Status**: API health, database status, storage metrics
+### Model Architecture
 
-### Key Capabilities
-- **Real-time Predictions**: Upload 2-5 images for instant accident detection
-- **Data Upload**: Bulk upload of training images with labeling
-- **Model Retraining**: One-click model retraining with progress monitoring
-- **Analytics Dashboard**: Comprehensive prediction analytics and trends
-- **Data Management**: Clear prediction history and training data
+#### CNN+LSTM Temporal Model
+- **Base Model**: MobileNetV2 (pre-trained on ImageNet)
+- **Temporal Processing**: LSTM layers for sequence analysis
+- **Input**: 2-5 sequential images (224x224x3)
+- **Output**: Binary classification (Accident/No Accident)
+- **Performance**: 92.5% validation accuracy
+- **Features**: Transfer learning, dropout regularization, batch normalization
+
+#### Training Pipeline
+- **Data Augmentation**: Rotation, brightness, zoom, horizontal flip
+- **Optimization**: Adam optimizer with learning rate scheduling
+- **Callbacks**: Early stopping, model checkpointing, reduce LR on plateau
+- **Evaluation**: Accuracy, precision, recall, F1-score metrics
 
 ## Load Testing & Performance
 
@@ -265,56 +266,5 @@ AccidentDetectionMLOps/
 └── README.md                    
 ```
 
-## Deployment
 
-### Production Deployment (Render)
-- **URL**: https://accidentdetectionmlops.onrender.com
-- **API Docs**: https://accidentdetectionmlops.onrender.com/docs
-- **Runtime**: Python 3.9.11 with TensorFlow CPU-only mode
-- **Features**: Auto-scaling, health monitoring, zero-downtime deployment
-
-### Local Development
-```bash
-# Start FastAPI server
-uvicorn src.main:app --reload --host 0.0.0.0 --port 8000
-
-# Launch Streamlit dashboard  
-streamlit run streamlit_app.py
-
-# Run load tests
-locust -f src/locustfile.py --host=http://localhost:8000
-```
-
-
-## Dataset Information
-
-**Source**: [Accident Detection Dataset](https://www.kaggle.com/datasets/accident-detection)
-
-**Statistics**:
-- **Training Images**: 1,500+ images per class
-- **Test Images**: 300+ images per class  
-- **Validation Images**: 200+ images per class
-- **Format**: JPG images (various resolutions)
-- **Classes**: Binary classification (Accident/No Accident)
-
-**Preprocessing**:
-- Resize to 224x224 pixels
-- Normalization to [0,1] range
-- Data augmentation (rotation, brightness, zoom)
-- Sequence generation for temporal analysis
-
-## Demo & Resources
-
-### 🔗 Live Application
-- **Production API**: https://accidentdetectionmlops.onrender.com
-- **API Documentation**: https://accidentdetectionmlops.onrender.com/docs
-- **Health Check**: https://accidentdetectionmlops.onrender.com/health
-
-### 📺 Video Demo
-[YouTube Video Demo](https://youtube.com) - *Pending creation*
-
-### 🛠️ Development Resources
-- **GitHub Repository**: https://github.com/excelasaph/AccidentDetectionMLOps
-- **Jupyter Notebook**: `notebook/accident_detection.ipynb`
-- **Load Testing**: `src/locustfile.py`
 
